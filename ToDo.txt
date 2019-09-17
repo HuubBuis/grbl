@@ -1,0 +1,2 @@
+Limits.limits_get_state(uint8_t selected_pins)
+selected_pins mask should be applied at the start, when reading pins, not at the end because returned result is axis array that doesn't match pin array!

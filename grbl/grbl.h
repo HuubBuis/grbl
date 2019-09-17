@@ -23,9 +23,10 @@
 
 // Grbl versioning system
 #define GRBL_VERSION "1.1g"
-#define GRBL_VERSION_BUILD "20181112"
+#define GRBL_VERSION_BUILD "20190917"
 
 // Define standard libraries used by Grbl.
+#include <util/atomic.h>
 #include <avr/io.h>
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
@@ -60,6 +61,8 @@
 #include "spindle_control.h"
 #include "stepper.h"
 #include "jog.h"
+#include "timekeeper.h"
+#include "threading.h"
 
 // ---------------------------------------------------------------------------------------
 // COMPILE-TIME ERROR CHECKING OF DEFINE VALUES:

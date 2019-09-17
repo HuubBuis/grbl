@@ -4,6 +4,7 @@
 
   Copyright (c) 2012-2016 Sungeun K. Jeon for Gnea Research LLC
   Copyright (c) 2009-2011 Simen Svale Skogsrud
+  modified for use on a lathe, 2019 Huub Buis
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,6 +29,16 @@
 #ifndef config_h
 #define config_h
 #include "grbl.h" // For Arduino IDE compatibility.
+
+
+//Define for use on a lathe, enabled by default because this is a GRBL lathe version
+
+//#define LIMIT_MASK       ((1<<X_LIMIT_BIT)|(1<<Y_LIMIT_BIT)|(1<<Z_LIMIT_BIT)) // All limit bits
+
+// These settings are needed for G33 threading
+// The timer resolution (TIMER_TICS_PER_MINUTE) is defined in config.h
+#define SPINDLE_INDEX_PULSES_BEFORE_START_G33 3L		// The number of sync pulses needed before starting threading. Don't set lower than 3
+#define MINIMAL_SPINDLE_SPEED_G33 10L					// The minimal spindle speed for threading to start
 
 // Define CPU pin map and default settings.
 // NOTE: OEMs can avoid the need to maintain/update the defaults.h and cpu_map.h files and use only
@@ -163,7 +174,7 @@
 // Upon a successful probe cycle, this option provides immediately feedback of the probe coordinates
 // through an automatically generated message. If disabled, users can still access the last probe
 // coordinates through Grbl '$#' print parameters.
-#define MESSAGE_PROBE_COORDINATES // Enabled by default. Comment to disable.
+#define MESSAGE_PROBE_COORDINATES // Enabled by default. Comment to disable. disabled in this GRBL Lathe version
 
 // Enables a second coolant control pin via the mist coolant g-code command M7 on the Arduino Uno
 // analog pin 4. Only use this option if you require a second coolant control pin.
@@ -573,7 +584,7 @@
 #define PARKING_PULLOUT_INCREMENT 5.0 // Spindle pull-out and plunge distance in mm. Incremental distance.
                                       // Must be positive value or equal to zero.
 
-// Enables a special set of M-code commands that enables and disables the parking motion. 
+// Enables a special set of M-code commands that enables and disables the parking motion.
 // These are controlled by `M56`, `M56 P1`, or `M56 Px` to enable and `M56 P0` to disable. 
 // The command is modal and will be set after a planner sync. Since it is g-code, it is 
 // executed in sync with g-code commands. It is not a real-time command.
@@ -586,7 +597,7 @@
 // override immediately after coming to a stop. However, this also means that the laser still may
 // be reenabled by disabling the spindle stop override, if needed. This is purely a safety feature
 // to ensure the laser doesn't inadvertently remain powered while at a stop and cause a fire.
-#define DISABLE_LASER_DURING_HOLD // Default enabled. Comment to disable.
+//#define DISABLE_LASER_DURING_HOLD // Default enabled. Comment to disable.
 
 // Enables a piecewise linear model of the spindle PWM/speed output. Requires a solution by the
 // 'fit_nonlinear_spindle.py' script in the /doc/script folder of the repo. See file comments 

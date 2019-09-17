@@ -30,7 +30,7 @@
 // and are similar/identical to other g-code interpreters by manufacturers (Haas,Fanuc,Mazak,etc).
 // NOTE: Modal group define values must be sequential and starting from zero.
 #define MODAL_GROUP_G0 0 // [G4,G10,G28,G28.1,G30,G30.1,G53,G92,G92.1] Non-modal
-#define MODAL_GROUP_G1 1 // [G0,G1,G2,G3,G38.2,G38.3,G38.4,G38.5,G80] Motion
+#define MODAL_GROUP_G1 1 // [G0,G1,G2,G3,G33,G38.2,G38.3,G38.4,G38.5,G80] Motion
 #define MODAL_GROUP_G2 2 // [G17,G18,G19] Plane selection
 #define MODAL_GROUP_G3 3 // [G90,G91] Distance mode
 #define MODAL_GROUP_G4 4 // [G91.1] Arc IJK distance mode
@@ -70,6 +70,7 @@
 #define MOTION_MODE_LINEAR 1 // G1 (Do not alter value)
 #define MOTION_MODE_CW_ARC 2  // G2 (Do not alter value)
 #define MOTION_MODE_CCW_ARC 3  // G3 (Do not alter value)
+#define MOTION_MODE_SPINDLE_SYNC 33 // G33 (spindle synced motion) (do not alter value)
 #define MOTION_MODE_PROBE_TOWARD 140 // G38.2 (Do not alter value)
 #define MOTION_MODE_PROBE_TOWARD_NO_ERROR 141 // G38.3 (Do not alter value)
 #define MOTION_MODE_PROBE_AWAY 142 // G38.4 (Do not alter value)

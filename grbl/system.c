@@ -51,6 +51,7 @@ uint8_t system_control_get_state()
     if (bit_isfalse(pin,(1<<CONTROL_RESET_BIT))) { control_state |= CONTROL_PIN_INDEX_RESET; }
     if (bit_isfalse(pin,(1<<CONTROL_FEED_HOLD_BIT))) { control_state |= CONTROL_PIN_INDEX_FEED_HOLD; }
     if (bit_isfalse(pin,(1<<CONTROL_CYCLE_START_BIT))) { control_state |= CONTROL_PIN_INDEX_CYCLE_START; }
+	if (bit_isfalse(pin,(1<<CONTROL_SPINDLE_SYNC_BIT))) { control_state |= CONTROL_PIN_INDEX_SPINDLE_SYNC; }
   }
   return(control_state);
 }
@@ -73,10 +74,16 @@ ISR(CONTROL_INT_vect)
     #ifndef ENABLE_SAFETY_DOOR_INPUT_PIN
       if (bit_istrue(pin,CONTROL_PIN_INDEX_FEED_HOLD)) {
         bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
+	}
     #else
       if (bit_istrue(pin,CONTROL_PIN_INDEX_SAFETY_DOOR)) {
         bit_true(sys_rt_exec_state, EXEC_SAFETY_DOOR);
+	}
     #endif
+	if (bit_istrue(pin,CONTROL_PIN_INDEX_SPINDLE_SYNC)) {				// Detected a G33 spindle synchronization pulse. Beware, this is not the spindle index pulse
+	  if (settings.sync_pulses_per_revolution>1) { 						// If G33 is configured for synchronization pulses
+		bit_true(threading_exec_flags,EXEC_PLANNER_SYNC_PULSE);			// Signal the detection of a synchronization pulse.
+      }
     }
   }
 }
@@ -406,4 +413,18 @@ void system_clear_exec_accessory_overrides() {
   cli();
   sys_rt_exec_accessory_override = 0;
   SREG = sreg;
+}
+
+void system_set_threading_exec_flag(uint8_t mask) {
+	uint8_t sreg = SREG;
+	cli();
+	threading_exec_flags |= (mask);
+	SREG = sreg;
+}
+
+void system_clear_threading_exec_flag(uint8_t mask) {
+	uint8_t sreg = SREG;
+	cli();
+	threading_exec_flags &= ~(mask);
+	SREG = sreg;
 }

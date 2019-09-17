@@ -39,6 +39,8 @@
 #define STATUS_TRAVEL_EXCEEDED 15
 #define STATUS_INVALID_JOG_COMMAND 16
 #define STATUS_SETTING_DISABLED_LASER 17
+#define STATUS_INDEX_PULSE_TIMEOUT 18
+#define STATUS_SYNCHRONIZATION_PULSE_TIMEOUT 19
 
 #define STATUS_GCODE_UNSUPPORTED_COMMAND 20
 #define STATUS_GCODE_MODAL_GROUP_VIOLATION 21
@@ -59,6 +61,8 @@
 #define STATUS_GCODE_UNUSED_WORDS 36
 #define STATUS_GCODE_G43_DYNAMIC_AXIS_ERROR 37
 #define STATUS_GCODE_MAX_VALUE_EXCEEDED 38
+#define STATUS_GCODE_G33_SYNCHRONIZATION_PULSES_PER_REVOLUTION_NOT_SET 39
+#define STATUS_GCODE_G33_HARDWARE_LIMITS_NOT_ENABLED 40
 
 // Define Grbl alarm codes. Valid values (1-255). 0 is reserved.
 #define ALARM_HARD_LIMIT_ERROR      EXEC_ALARM_HARD_LIMIT
@@ -84,6 +88,12 @@
 #define MESSAGE_SPINDLE_RESTORE 10
 #define MESSAGE_SLEEP_MODE 11
 
+// Prints a debug message
+void report_debug_message(const char *s, uint8_t Message, uint8_t digits );
+
+// Internal report utilities to reduce flash with repetitive tasks turned into functions.
+void report_util_line_feed();
+
 // Prints system status messages.
 void report_status_message(uint8_t status_code);
 
@@ -92,6 +102,9 @@ void report_alarm_message(uint8_t alarm_code);
 
 // Prints miscellaneous feedback messages.
 void report_feedback_message(uint8_t message_code);
+
+// Prints the synchronization error feedback message
+void report_synchronization_error_feedback();
 
 // Prints welcome message
 void report_init_message();

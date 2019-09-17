@@ -68,7 +68,7 @@ A short list of the modal groups, supported by Grbl, is shown below, but more co
 
 | Modal Group Meaning	|  Member Words |
 |:----:|:----:|
-| Motion Mode | **G0**, G1, G2, G3, G38.2, G38.3, G38.4, G38.5, G80 |
+| Motion Mode | **G0**, G1, G2, G3, G33, G38.2, G38.3, G38.4, G38.5, G80 |
 |Coordinate System Select	| **G54**, G55, G56, G57, G58, G59|
 |Plane Select	| **G17**, G18, G19|
 |Distance Mode	| **G90**, G91|

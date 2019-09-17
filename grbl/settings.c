@@ -57,8 +57,8 @@ const __flash settings_t defaults = {\
     .acceleration[Z_AXIS] = DEFAULT_Z_ACCELERATION,
     .max_travel[X_AXIS] = (-DEFAULT_X_MAX_TRAVEL),
     .max_travel[Y_AXIS] = (-DEFAULT_Y_MAX_TRAVEL),
-    .max_travel[Z_AXIS] = (-DEFAULT_Z_MAX_TRAVEL)};
-
+    .max_travel[Z_AXIS] = (-DEFAULT_Z_MAX_TRAVEL),
+	.sync_pulses_per_revolution = DEFAULT_SYNC_PULSES_PER_REVOLUTION};	
 
 // Method to store startup lines into EEPROM
 void settings_store_startup_line(uint8_t n, char *line)
@@ -294,6 +294,7 @@ uint8_t settings_store_global_setting(uint8_t parameter, float value) {
           return(STATUS_SETTING_DISABLED_LASER);
         #endif
         break;
+	  case 40: settings.sync_pulses_per_revolution=	int_value; break;
       default:
         return(STATUS_INVALID_STATEMENT);
     }

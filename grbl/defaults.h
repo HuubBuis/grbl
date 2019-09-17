@@ -63,6 +63,7 @@
   #define DEFAULT_HOMING_SEEK_RATE 500.0 // mm/min
   #define DEFAULT_HOMING_DEBOUNCE_DELAY 250 // msec (0-65k)
   #define DEFAULT_HOMING_PULLOFF 1.0 // mm
+  #define DEFAULT_SYNC_PULSES_PER_REVOLUTION 0 //Only spindle index pulse, minimum requirement
 #endif
 
 #ifdef DEFAULTS_SHERLINE_5400
@@ -105,6 +106,7 @@
   #define DEFAULT_HOMING_SEEK_RATE 635.0 // mm/min
   #define DEFAULT_HOMING_DEBOUNCE_DELAY 250 // msec (0-65k)
   #define DEFAULT_HOMING_PULLOFF 1.0 // mm
+  #define DEFAULT_SYNC_PULSES_PER_REVOLUTION 0 //Only spindle index pulse, minimum requirement
 #endif
 
 #ifdef DEFAULTS_POCKETNC_FR4
@@ -143,6 +145,7 @@
   #define DEFAULT_HOMING_SEEK_RATE 300.0 // mm/min
   #define DEFAULT_HOMING_DEBOUNCE_DELAY 250 // msec (0-65k)
   #define DEFAULT_HOMING_PULLOFF 3.0 // mm
+  #define DEFAULT_SYNC_PULSES_PER_REVOLUTION 0 //Only spindle index pulse, minimum requirement
 #endif
 
 #ifdef DEFAULTS_SHAPEOKO
@@ -188,6 +191,7 @@
   #define DEFAULT_HOMING_SEEK_RATE 250.0 // mm/min
   #define DEFAULT_HOMING_DEBOUNCE_DELAY 250 // msec (0-65k)
   #define DEFAULT_HOMING_PULLOFF 1.0 // mm
+  #define DEFAULT_SYNC_PULSES_PER_REVOLUTION 0 //Only spindle index pulse, minimum requirement
 #endif
 
 #ifdef DEFAULTS_SHAPEOKO_2
@@ -233,6 +237,7 @@
   #define DEFAULT_HOMING_SEEK_RATE 250.0 // mm/min
   #define DEFAULT_HOMING_DEBOUNCE_DELAY 250 // msec (0-65k)
   #define DEFAULT_HOMING_PULLOFF 1.0 // mm
+  #define DEFAULT_SYNC_PULSES_PER_REVOLUTION 0 //Only spindle index pulse, minimum requirement
 #endif
 
 #ifdef DEFAULTS_SHAPEOKO_3
@@ -277,6 +282,7 @@
   #define DEFAULT_HOMING_SEEK_RATE 1000.0 // mm/min
   #define DEFAULT_HOMING_DEBOUNCE_DELAY 25 // msec (0-65k)
   #define DEFAULT_HOMING_PULLOFF 5.0 // mm
+  #define DEFAULT_SYNC_PULSES_PER_REVOLUTION 0 //Only spindle index pulse, minimum requirement
 #endif
 
 #ifdef DEFAULTS_X_CARVE_500MM
@@ -322,6 +328,7 @@
   #define DEFAULT_HOMING_SEEK_RATE 750.0 // mm/min
   #define DEFAULT_HOMING_DEBOUNCE_DELAY 250 // msec (0-65k)
   #define DEFAULT_HOMING_PULLOFF 1.0 // mm
+  #define DEFAULT_SYNC_PULSES_PER_REVOLUTION 0 //Only spindle index pulse, minimum requirement
 #endif
 
 #ifdef DEFAULTS_X_CARVE_1000MM
@@ -367,6 +374,7 @@
   #define DEFAULT_HOMING_SEEK_RATE 750.0 // mm/min
   #define DEFAULT_HOMING_DEBOUNCE_DELAY 250 // msec (0-65k)
   #define DEFAULT_HOMING_PULLOFF 1.0 // mm
+  #define DEFAULT_SYNC_PULSES_PER_REVOLUTION 0 //Only spindle index pulse, minimum requirement
 #endif
 
 #ifdef DEFAULTS_ZEN_TOOLWORKS_7x7
@@ -410,6 +418,7 @@
   #define DEFAULT_HOMING_SEEK_RATE 250.0 // mm/min
   #define DEFAULT_HOMING_DEBOUNCE_DELAY 250 // msec (0-65k)
   #define DEFAULT_HOMING_PULLOFF 1.0 // mm
+  #define DEFAULT_SYNC_PULSES_PER_REVOLUTION 0 //Only spindle index pulse, minimum requirement
 #endif
 
 #ifdef DEFAULTS_OXCNC
@@ -449,6 +458,7 @@
   #define DEFAULT_HOMING_SEEK_RATE 500.0 // mm/min
   #define DEFAULT_HOMING_DEBOUNCE_DELAY 250 // msec (0-65k)
   #define DEFAULT_HOMING_PULLOFF 1.0 // mm
+  #define DEFAULT_SYNC_PULSES_PER_REVOLUTION 0 //Only spindle index pulse, minimum requirement
 #endif
 
 #ifdef DEFAULTS_SIMULATOR
@@ -488,6 +498,7 @@
   #define DEFAULT_HOMING_SEEK_RATE 500.0 // mm/min
   #define DEFAULT_HOMING_DEBOUNCE_DELAY 250 // msec (0-65k)
   #define DEFAULT_HOMING_PULLOFF 1.0 // mm
+  #define DEFAULT_SYNC_PULSES_PER_REVOLUTION 0 //Only spindle index pulse, minimum requirement
 #endif
 
 #endif

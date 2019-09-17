@@ -5,3 +5,16 @@
 *.d
 
 README.md
+.vs/GRBL-L/v14/.atsuo
+Debug/GRBL-L.eep
+Debug/GRBL-L.lss
+Debug/GRBL-L.map
+Debug/GRBL-L.srec
+Debug/makedep.mk
+doc/csv/vssver2.scc
+doc/log/vssver2.scc
+GRBL-L.componentinfo.xml
+*.cproj
+*.vspscc
+*.scc
+Debug/Makefile

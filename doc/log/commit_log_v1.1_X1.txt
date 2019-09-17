@@ -1,0 +1,8 @@
+----------------
+Date: 2019-10-09
+Author: Huub Buis
+Subject: G33 spindle synchronization support.
+- Added G33 to support spindle synchronization threading
+- Added option to report the measured spindle spead in stead of the spindle speed set by GRBL in the real time status report
+- Added option to report the synchronization error during G33 moves in the real time status report
+- Added option to report the synchronization error during G33 moves at each index pulse (push message)

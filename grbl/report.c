@@ -31,7 +31,7 @@
 
 // Internal report utilities to reduce flash with repetitive tasks turned into functions.
 void report_util_setting_prefix(uint8_t n) { serial_write('$'); print_uint8_base10(n); serial_write('='); }
-static void report_util_line_feed() { printPgmString(PSTR("\r\n")); }
+void report_util_line_feed() { printPgmString(PSTR("\r\n")); }
 static void report_util_feedback_line_feed() { serial_write(']'); report_util_line_feed(); }
 static void report_util_gcode_modes_G() { printPgmString(PSTR(" G")); }
 static void report_util_gcode_modes_M() { printPgmString(PSTR(" M")); }
@@ -44,57 +44,15 @@ static void report_util_axis_values(float *axis_value) {
   }
 }
 
-/*
-static void report_util_setting_string(uint8_t n) {
-  serial_write(' ');
-  serial_write('(');
-  switch(n) {
-    case 0: printPgmString(PSTR("stp pulse")); break;
-    case 1: printPgmString(PSTR("idl delay")); break; 
-    case 2: printPgmString(PSTR("stp inv")); break;
-    case 3: printPgmString(PSTR("dir inv")); break;
-    case 4: printPgmString(PSTR("stp en inv")); break;
-    case 5: printPgmString(PSTR("lim inv")); break;
-    case 6: printPgmString(PSTR("prb inv")); break;
-    case 10: printPgmString(PSTR("rpt")); break;
-    case 11: printPgmString(PSTR("jnc dev")); break;
-    case 12: printPgmString(PSTR("arc tol")); break;
-    case 13: printPgmString(PSTR("rpt inch")); break;
-    case 20: printPgmString(PSTR("sft lim")); break;
-    case 21: printPgmString(PSTR("hrd lim")); break;
-    case 22: printPgmString(PSTR("hm cyc")); break;
-    case 23: printPgmString(PSTR("hm dir inv")); break;
-    case 24: printPgmString(PSTR("hm feed")); break;
-    case 25: printPgmString(PSTR("hm seek")); break;
-    case 26: printPgmString(PSTR("hm delay")); break;
-    case 27: printPgmString(PSTR("hm pulloff")); break;
-    case 30: printPgmString(PSTR("rpm max")); break;
-    case 31: printPgmString(PSTR("rpm min")); break;
-    case 32: printPgmString(PSTR("laser")); break;
-    default:
-      n -= AXIS_SETTINGS_START_VAL;
-      uint8_t idx = 0;
-      while (n >= AXIS_SETTINGS_INCREMENT) {
-        n -= AXIS_SETTINGS_INCREMENT;
-        idx++;
-      }
-      serial_write(n+'x');
-      switch (idx) {
-        case 0: printPgmString(PSTR(":stp/mm")); break;
-        case 1: printPgmString(PSTR(":mm/min")); break;
-        case 2: printPgmString(PSTR(":mm/s^2")); break;
-        case 3: printPgmString(PSTR(":mm max")); break;
-      }
-      break;
-  }
-  report_util_comment_line_feed();
-}
-*/
-
 static void report_util_uint8_setting(uint8_t n, int val) { 
   report_util_setting_prefix(n); 
   print_uint8_base10(val); 
   report_util_line_feed(); // report_util_setting_string(n); 
+}
+static void report_util_uint16_setting(uint16_t n, int val) {
+	report_util_setting_prefix(n);
+	print_uint32_base10((uint32_t)val);
+	report_util_line_feed(); // report_util_setting_string(n);
 }
 static void report_util_float_setting(uint8_t n, float val, uint8_t n_decimal) { 
   report_util_setting_prefix(n); 
@@ -102,6 +60,19 @@ static void report_util_float_setting(uint8_t n, float val, uint8_t n_decimal) {
   report_util_line_feed(); // report_util_setting_string(n);
 }
 
+//Prints a 8 bit debug message as decimal or binairy
+void report_debug_message(const char *s, uint8_t Message, uint8_t digits )
+{
+	printPgmString(PSTR("["));
+	printString(s);
+	printPgmString(PSTR(":"));
+	if (digits==0)
+		print_uint8_base10(Message);
+	else
+		print_uint8_base2_ndigit(Message,8);
+	printPgmString(PSTR("]"));
+	report_util_line_feed();
+}
 
 // Handles the primary confirmation protocol response for streaming interfaces and human-feedback.
 // For every incoming line, this method responds with an 'ok' for a successful command or an
@@ -165,6 +136,14 @@ void report_feedback_message(uint8_t message_code)
   report_util_feedback_line_feed();
 }
 
+// Reports synchronization error feedback.  just for debugging or checking threading accuracy
+void report_synchronization_error_feedback()
+{
+	printPgmString(PSTR("[Se:"));
+	printFloat_CoordValue(synchronization_millimeters_error);
+	serial_write(']');
+	report_util_line_feed();
+}
 
 // Welcome message
 void report_init_message()
@@ -203,6 +182,7 @@ void report_grbl_settings() {
   report_util_float_setting(27,settings.homing_pulloff,N_DECIMAL_SETTINGVALUE);
   report_util_float_setting(30,settings.rpm_max,N_DECIMAL_RPMVALUE);
   report_util_float_setting(31,settings.rpm_min,N_DECIMAL_RPMVALUE);
+  report_util_uint16_setting(40,settings.sync_pulses_per_revolution);
   #ifdef VARIABLE_SPINDLE
     report_util_uint8_setting(32,bit_istrue(settings.flags,BITFLAG_LASER_MODE));
   #else
@@ -382,6 +362,8 @@ void report_build_info(char *line)
   #ifdef ENABLE_M7
     serial_write('M');
   #endif
+  serial_write('X'); // Extended lathe command set
+  serial_write('1'); // Extended lathe command set Version 1: G33 spindle synchronization support for threading.
   #ifdef COREXY
     serial_write('C');
   #endif
@@ -548,21 +530,18 @@ void report_realtime_status()
     #endif
   #endif
 
-  // Report realtime feed speed
+  // Report real time feed & speed
   #ifdef REPORT_FIELD_CURRENT_FEED_SPEED
-    #ifdef VARIABLE_SPINDLE
-      printPgmString(PSTR("|FS:"));
-      printFloat_RateValue(st_get_realtime_rate());
-      serial_write(',');
-      printFloat(sys.spindle_speed,N_DECIMAL_RPMVALUE);
-    #else
-      printPgmString(PSTR("|F:"));
-      printFloat_RateValue(st_get_realtime_rate());
-    #endif      
+    printPgmString(PSTR("|FS:"));
+    printFloat_RateValue(st_get_realtime_rate());
+    serial_write(',');
+    if (settings.sync_pulses_per_revolution==0) { printFloat(sys.spindle_speed,N_DECIMAL_RPMVALUE); }
+    else if (timer_tics_passed_since_last_index_pulse()<(TIMER_TICS_PER_MINUTE/MINIMAL_SPINDLE_SPEED_G33)) {printFloat((float)threading_index_spindle_speed,0); }	// Spindle speed > MINIMAL_SPINDLE_SPEED_G33 RPM
+    else {printFloat(0,0);}
   #endif
 
   #ifdef REPORT_FIELD_PIN_STATE
-    uint8_t lim_pin_state = limits_get_state();
+    uint8_t lim_pin_state = limits_get_state(LIMIT_PIN_MASK_ALL);
     uint8_t ctrl_pin_state = system_control_get_state();
     uint8_t prb_pin_state = probe_get_state();
     if (lim_pin_state | ctrl_pin_state | prb_pin_state) {
@@ -633,7 +612,20 @@ void report_realtime_status()
       }  
     }
   #endif
-
+  
+  // report the synchronization state (G33)
+  if (bit_istrue(threading_exec_flags,(EXEC_SYNCHRONIZATION_STATE_REPORT))) {				// report if a report is flagged
+	  printPgmString(PSTR("|Se:"));
+	  printFloat_CoordValue(synchronization_millimeters_error);								// print the synchronization error in the unit set
+	  bit_false(threading_exec_flags,EXEC_SYNCHRONIZATION_STATE_REPORT);					// clear the flag to avoid reporting the same value again
+  }
+  else if (bit_istrue(threading_exec_flags,EXEC_SYNCHRONIZATION_STATE_REPORT_FINAL)) {		// if a final report is flagged and spindle synchronization is inactive
+	  if (!spindle_synchronization_active()) {
+		  printPgmString(PSTR("|Se:"));															// Report report a 0 value after G33 , looks better in a GUI
+		  printFloat(0,2);
+		  bit_false(threading_exec_flags,EXEC_SYNCHRONIZATION_STATE_REPORT_FINAL);				// clear the flag to avoid reporting the same value again
+	  }
+  }
   serial_write('>');
   report_util_line_feed();
 }

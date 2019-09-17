@@ -103,6 +103,7 @@ In v1.1, Grbl's interface protocol has been tweaked in the attempt to make GUI d
 	- `ALARM:x` : Indicates an alarm has been thrown. Grbl is now in an alarm state.	
 	- `$x=val` and `$Nx=line` indicate a settings printout from a `$` and `$N` user query, respectively.
 	- `[MSG:]` : Indicates a non-queried feedback message.
+	- `[Se:]` : Indicates a non-queried synchronization error feedback message during G33 moves.
 	- `[GC:]` : Indicates a queried `$G` g-code state message.
 	- `[HLP:]` : Indicates the help message.
 	- `[G54:]`, `[G55:]`, `[G56:]`, `[G57:]`, `[G58:]`, `[G59:]`, `[G28:]`, `[G30:]`, `[G92:]`, `[TLO:]`, and `[PRB:]` messages indicate the parameter data printout from a `$#` user query.
@@ -155,6 +156,8 @@ Every G-code block sent to Grbl and Grbl `$` system command that is terminated w
 | **`15`** | Jog target exceeds machine travel. Command ignored. |
 | **`16`** | Jog command with no '=' or contains prohibited g-code. |
 | **`17`** | Laser mode disabled. Requires PWM output. |
+| **`18`** | No index pulse in last 6 seconds. |
+| **`19`** | No sync pulse in last 6 seconds. |
 | **`20`** | Unsupported or invalid g-code command found in block. |
 | **`21`** | More than one g-code command from same modal group found in block.|
 | **`22`** | Feed rate has not yet been set or is undefined. |
@@ -168,6 +171,7 @@ Every G-code block sent to Grbl and Grbl `$` system command that is terminated w
 | **`30`**| The `G53` G-code command requires either a `G0` seek or `G1` feed motion mode to be active. A different motion was active.|
 | **`31`** | There are unused axis words in the block and `G80` motion mode cancel is active.|
 | **`32`** | A `G2` or `G3` arc was commanded but there are no `XYZ` axis words in the selected plane to trace the arc.|
+| **`40`** | Number of synchronization pulses, count |
 | **`33`** | The motion command has an invalid target. `G2`, `G3`, and `G38.2` generates this error, if the arc is impossible to generate or if the probe target is the current position.|
 | **`34`** | A `G2` or `G3` arc, traced with the radius definition, had a mathematical error when computing the arc geometry. Try either breaking up the arc into semi-circles or quadrants, or redefine them with the arc offset definition.|
 | **`35`** | A `G2` or `G3` arc, traced with the offset definition, is missing the `IJK` offset word in the selected plane to trace the arc.|
@@ -358,7 +362,8 @@ Feedback messages provide non-critical information on what Grbl is doing, what i
   - `[MSG:Restoring defaults]` - Appears as an acknowledgement message when restoring EEPROM defaults via a `$RST=` command. An 'ok' still appears immediately after to denote the `$RST=` was parsed and executed.
   
   - `[MSG:Sleeping]` - Appears as an acknowledgement message when Grbl's sleep mode is invoked by issuing a `$SLP` command when in IDLE or ALARM states. Note that Grbl-Mega may invoke this at any time when the sleep timer option has been enabled and the timeout has been exceeded. Grbl may only be exited by a reset in the sleep state and will automatically enter an alarm state since the steppers were disabled.
-	  - NOTE: Sleep will also invoke the parking motion, if it's enabled. However, if sleep is commanded during an ALARM, Grbl will not park and will simply de-energize everything and go to sleep.
+  - NOTE: Sleep will also invoke the parking motion, if it's enabled. However, if sleep is commanded during an ALARM, Grbl will not park and will simply de-energize everything and go to sleep.
+  - `[Se:x.xxx]` - This message appears during G33 moves after each index pulse, when bit 3 in the report mask is set. x.xxx is the error in the unit set
 
 - **Queried Feedback Messages:**
 
@@ -607,7 +612,7 @@ Feedback messages provide non-critical information on what Grbl is doing, what i
         	- `FS:500,8000` contains real-time feed rate, followed by spindle speed, data as the values. Note the `FS:`, rather than `F:`, data type name indicates spindle speed data is included.
                 
         - The current feed rate value is in mm/min or inches/min, depending on the `$` report inches user setting. 
-        - The second value is the current spindle speed in RPM
+        - The second value is the current spindle speed in RPM. If ($40) the number of synchronization pulses is larger than 0, the actual measured spindle speed is reported, other wise the spindle speed as set.
         
         - These values will often not be the programmed feed rate or spindle speed, because several situations can alter or limit them. For example, overrides directly scale the programmed values to a different running value, while machine settings, acceleration profiles, and even the direction traveled can also limit rates to maximum values allowable.
 

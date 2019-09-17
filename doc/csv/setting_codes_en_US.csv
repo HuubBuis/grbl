@@ -21,6 +21,7 @@
 "30","Maximum spindle speed","RPM","Maximum spindle speed. Sets PWM to 100% duty cycle."
 "31","Minimum spindle speed","RPM","Minimum spindle speed. Sets PWM to 0.4% or lowest duty cycle."
 "32","Laser-mode enable","boolean","Enables laser mode. Consecutive G1/2/3 commands will not halt when spindle speed is changed."
+"40","Number of synchronization pulses","count","Spindle synchronization pulses per revolution (0=none ; 1=just spindle index ; >1=spindle index and synchronization pulses)."
 "100","X-axis travel resolution","step/mm","X-axis travel resolution in steps per millimeter."
 "101","Y-axis travel resolution","step/mm","Y-axis travel resolution in steps per millimeter."
 "102","Z-axis travel resolution","step/mm","Z-axis travel resolution in steps per millimeter."

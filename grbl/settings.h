@@ -27,7 +27,7 @@
 
 // Version of the EEPROM data. Will be used to migrate existing data from older versions of Grbl
 // when firmware is upgraded. Always stored in byte 0 of eeprom
-#define SETTINGS_VERSION 10  // NOTE: Check settings_reset() when moving to next version.
+#define SETTINGS_VERSION 50  // NOTE  GRBL-L versions start from 50 to avoid conflicts when GRBL updates its version
 
 // Define bit flag masks for the boolean settings in settings.flag.
 #define BIT_REPORT_INCHES      0
@@ -51,6 +51,8 @@
 // Define status reporting boolean enable bit flags in settings.status_report_mask
 #define BITFLAG_RT_STATUS_POSITION_TYPE     bit(0)
 #define BITFLAG_RT_STATUS_BUFFER_STATE      bit(1)
+#define BITFLAG_RT_STATUS_SYNC_STATE		bit(2)
+#define BITFLAG_FEED_BACK_SYNC_STATUS		bit(3)
 
 // Define settings restore bitflags.
 #define SETTINGS_RESTORE_DEFAULTS bit(0)
@@ -110,6 +112,9 @@ typedef struct {
   float homing_seek_rate;
   uint16_t homing_debounce_delay;
   float homing_pulloff;
+  
+  uint16_t sync_pulses_per_revolution;	//the number of synchronization pulses per spindle revolution
+  
 } settings_t;
 extern settings_t settings;
 

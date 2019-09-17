@@ -24,11 +24,14 @@
 
 
 // The number of linear motions that can be in the plan at any give time
+// Decreased by 2 to make room for the extra threading data
 #ifndef BLOCK_BUFFER_SIZE
   #ifdef USE_LINE_NUMBERS
-    #define BLOCK_BUFFER_SIZE 15
+    //#define BLOCK_BUFFER_SIZE 15
+    #define BLOCK_BUFFER_SIZE 13
   #else
-    #define BLOCK_BUFFER_SIZE 16
+    //#define BLOCK_BUFFER_SIZE 16
+    #define BLOCK_BUFFER_SIZE 14
   #endif
 #endif
 
@@ -48,7 +51,7 @@
 #define PL_COND_MOTION_MASK    (PL_COND_FLAG_RAPID_MOTION|PL_COND_FLAG_SYSTEM_MOTION|PL_COND_FLAG_NO_FEED_OVERRIDE)
 #define PL_COND_SPINDLE_MASK   (PL_COND_FLAG_SPINDLE_CW|PL_COND_FLAG_SPINDLE_CCW)
 #define PL_COND_ACCESSORY_MASK (PL_COND_FLAG_SPINDLE_CW|PL_COND_FLAG_SPINDLE_CCW|PL_COND_FLAG_COOLANT_FLOOD|PL_COND_FLAG_COOLANT_MIST)
-
+#define PL_COND_FLAG_FEED_PER_REV      bit(8) // used for feed per revolution mode
 
 // This struct stores a linear movement of a g-code block motion with its critical "nominal" values
 // are as specified in the source g-code.
@@ -60,7 +63,7 @@ typedef struct {
   uint8_t direction_bits;    // The direction bit set for this block (refers to *_DIRECTION_BIT in config.h)
 
   // Block condition data to ensure correct execution depending on states and overrides.
-  uint8_t condition;      // Block bitflag variable defining block run conditions. Copied from pl_line_data.
+  uint16_t condition;      // Block bitflag variable defining block run conditions. Copied from pl_line_data.
   #ifdef USE_LINE_NUMBERS
     int32_t line_number;  // Block line number for real-time reporting. Copied from pl_line_data.
   #endif
@@ -90,7 +93,7 @@ typedef struct {
 typedef struct {
   float feed_rate;          // Desired feed rate for line motion. Value is ignored, if rapid motion.
   float spindle_speed;      // Desired spindle speed through line motion.
-  uint8_t condition;        // Bitflag variable to indicate planner conditions. See defines above.
+  uint16_t condition;       // Bitflag variable to indicate planner conditions. See defines above.
   #ifdef USE_LINE_NUMBERS
     int32_t line_number;    // Desired line number to report when executing.
   #endif

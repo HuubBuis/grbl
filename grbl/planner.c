@@ -258,14 +258,22 @@ uint8_t plan_check_full_buffer()
 // NOTE: All system motion commands, such as homing/parking, are not subject to overrides.
 float plan_compute_profile_nominal_speed(plan_block_t *block)
 {
-  float nominal_speed = block->programmed_rate;
-  if (block->condition & PL_COND_FLAG_RAPID_MOTION) { nominal_speed *= (0.01*sys.r_override); }
-  else {
-    if (!(block->condition & PL_COND_FLAG_NO_FEED_OVERRIDE)) { nominal_speed *= (0.01*sys.f_override); }
-    if (nominal_speed > block->rapid_rate) { nominal_speed = block->rapid_rate; }
-  }
-  if (nominal_speed > MINIMUM_FEED_RATE) { return(nominal_speed); }
-  return(MINIMUM_FEED_RATE);
+	float nominal_speed = block->programmed_rate;
+	if (block->condition & PL_COND_FLAG_RAPID_MOTION) { nominal_speed *= (0.01*sys.r_override); }
+	else
+	if (block->condition & PL_COND_FLAG_FEED_PER_REV) { // SPINDLE_SYNC
+		if bit_istrue(threading_exec_flags, EXEC_PLANNER_SYNC_PULSE) {									// there was a synchronization pulse so calculate the feed rate to be at the right position at the next spindle pulse
+			system_clear_threading_exec_flag(EXEC_PLANNER_SYNC_PULSE);									// clear the bit to avoid processing again.
+			threading_millimeters_target-=threading_mm_per_synchronization_pulse;						// calculate the new target
+			synchronization_millimeters_error=threading_millimeters_target-block->millimeters;			// calculate the position error. Note that block->millimeters counts down This has to be compensated at the next spindle pulse
+			block->programmed_rate=(threading_mm_per_synchronization_pulse-synchronization_millimeters_error) / ((float) threading_index_timer_tics_passed / threading_feed_rate_calculation_factor); //calculate the new feed rate to reduce the error.
+		}
+	} else {
+		if (!(block->condition & PL_COND_FLAG_NO_FEED_OVERRIDE)) { nominal_speed *= (0.01*sys.f_override); }
+		if (nominal_speed > block->rapid_rate) { nominal_speed = block->rapid_rate; }
+	}
+	if (nominal_speed > MINIMUM_FEED_RATE) { return(nominal_speed); }
+	return(MINIMUM_FEED_RATE);
 }
 
 
@@ -467,6 +475,10 @@ uint8_t plan_buffer_line(float *target, plan_line_data_t *pl_data)
 
     // Finish up by recalculating the plan with the new block.
     planner_recalculate();
+  }
+  //In feed per revolution mode set the global threading mm value. This value is defined global to save memory
+  if ((block->condition & PL_COND_FLAG_FEED_PER_REV)) {
+	  threading_millimeters_target=block->millimeters;
   }
   return(PLAN_OK);
 }

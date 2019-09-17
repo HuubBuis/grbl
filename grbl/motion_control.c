@@ -209,7 +209,7 @@ void mc_homing_cycle(uint8_t cycle_mask)
   // with machines with limits wired on both ends of travel to one limit pin.
   // TODO: Move the pin-specific LIMIT_PIN call to limits.c as a function.
   #ifdef LIMITS_TWO_SWITCHES_ON_AXES
-    if (limits_get_state()) {
+    if (limits_get_state(LIMIT_PIN_MASK_ALL)) {
       mc_reset(); // Issue system reset and ensure spindle and coolant are shutdown.
       system_set_exec_alarm(EXEC_ALARM_HARD_LIMIT);
       return;
@@ -316,7 +316,6 @@ uint8_t mc_probe_cycle(float *target, plan_line_data_t *pl_data, uint8_t parser_
   if (sys.probe_succeeded) { return(GC_PROBE_FOUND); } // Successful probe cycle.
   else { return(GC_PROBE_FAIL_END); } // Failed to trigger probe within travel. With or without error.
 }
-
 
 // Plans and executes the single special motion case for parking. Independent of main planner buffer.
 // NOTE: Uses the always free planner ring buffer head to store motion parameters for execution.

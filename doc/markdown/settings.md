@@ -138,10 +138,11 @@ This setting determines what Grbl real-time data it reports back to the user whe
 
 By default, the new report implementation in Grbl v1.1+ will include just about everything in the standard status report. A lot of the data is hidden and will appear only if it changes. This increases efficiency dramatically over of the old report style and allows you to get faster updates and still get more data about your machine. The interface documentation outlines how it works and most of it applies only to GUI developers or the curious.
 
-To keep things simple and consistent, Grbl v1.1 has only two reporting options. These are primarily here just for users and developers to help set things up. 
-
+To keep things simple and consistent, Grbl v1.1 X1 has only four reporting options. These are primarily here just for users and developers to help set things up.
 - Position type may be specified to show either machine position (`MPos:`)  or work position (`WPos:`), but no longer both at the same time. Enabling work position is useful in certain scenarios when Grbl is being directly interacted with through a serial terminal, but _machine position reporting should be used by default._ 
 - Usage data of Grbl's planner and serial RX buffers may be enabled. This shows the number of blocks or bytes available in the respective buffers. This is generally used to helps determine how Grbl is performing when testing out a streaming interface. _This should be disabled by default._
+- Reporting the measured spindle speed in stead of the spindle speed set by GRBL
+- Reporting of the (threading) position error during G33 moves
 
 Use the table below enables and disable reporting options. Simply add the values listed of what you'd like to enable, then save it by sending Grbl your setting value. For example, the default report with machine position and no buffer data reports setting is `$10=1`. If work position and buffer data are desired, the setting will be `$10=2`.
 
@@ -149,6 +150,8 @@ Use the table below enables and disable reporting options. Simply add the values
 |:-------------:|:----:|:----:|
 | Position Type | 1 | Enabled `MPos:`. Disabled `WPos:`. |
 | Buffer Data | 2 | Enabled `Buf:` field appears with planner and serial RX available buffer.
+| Sync State  | 3 | Enabled `Se:` field appears with current synchronization error.
+| Sync State  | 4 | Enabled `Se:` field is reported as a push message at every index pulse during G33 moves.
 
 #### $11 - Junction deviation, mm
 
@@ -226,6 +229,15 @@ This sets the spindle speed for the minimum 0.02V PWM pin output (0V is disabled
 When enabled, Grbl will move continuously through consecutive `G1`, `G2`, or `G3` motion commands when programmed with a `S` spindle speed (laser power). The spindle PWM pin will be updated instantaneously through each motion without stopping. Please read the Grbl laser documentation and your laser device documentation prior to using this mode. Lasers are very dangerous. They can instantly damage your vision permanantly and cause fires. Grbl does not assume any responsibility for any issues the firmware may cause, as defined by its GPL license. 
 
 When disabled, Grbl will operate as it always has, stopping motion with every `S` spindle speed command. This is the default operation of a milling machine to allow a pause to let the spindle change speeds.
+
+### $40 Synchronization pulses per spindle revolution
+
+GRBL needs to know how many synchronization pulses there are for each turn of the spindle.
+The maximum number is 65536 but the arduino uno or mega controller processing power limits it to a maximum of 8 synchronisation pulses per spindle revolution.  
+
+* Set to 0 if there is not spindle synchronization pulse. 
+* Set to 1 if there is only an index pulse. For G33 to work, there must be at least an index pulse.
+* Set to the resolution of the spindle encoder if there is a synchronization encoder on the spindle besides the index pulse. 
 
 #### $100, $101 and $102 – [X,Y,Z] steps/mm
 

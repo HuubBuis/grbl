@@ -40,7 +40,7 @@ void protocol_main_loop()
   // Perform some machine checks to make sure everything is good to go.
   #ifdef CHECK_LIMITS_AT_INIT
     if (bit_istrue(settings.flags, BITFLAG_HARD_LIMIT_ENABLE)) {
-      if (limits_get_state()) {
+      if (limits_get_state(LIMIT_MASK_ALL_EXCEPT_Y_AXIS)) {
         sys.state = STATE_ALARM; // Ensure alarm state is active.
         report_feedback_message(MESSAGE_CHECK_LIMITS);
       }
@@ -75,92 +75,97 @@ void protocol_main_loop()
 
     // Process one line of incoming serial data, as the data becomes available. Performs an
     // initial filtering by removing spaces and comments and capitalizing all letters.
-    while((c = serial_read()) != SERIAL_NO_DATA) {
-      if ((c == '\n') || (c == '\r')) { // End of line reached
-
-        protocol_execute_realtime(); // Runtime command check point.
-        if (sys.abort) { return; } // Bail to calling function upon system abort
-
-        line[char_counter] = 0; // Set string termination character.
-        #ifdef REPORT_ECHO_LINE_RECEIVED
-          report_echo_line_received(line);
-        #endif
-
-        // Direct and execute one line of formatted input, and report status of execution.
-        if (line_flags & LINE_FLAG_OVERFLOW) {
-          // Report line overflow error.
-          report_status_message(STATUS_OVERFLOW);
-        } else if (line[0] == 0) {
-          // Empty or comment line. For syncing purposes.
-          report_status_message(STATUS_OK);
-        } else if (line[0] == '$') {
-          // Grbl '$' system command
-          report_status_message(system_execute_line(line));
-        } else if (sys.state & (STATE_ALARM | STATE_JOG)) {
-          // Everything else is gcode. Block if in alarm or jog mode.
-          report_status_message(STATUS_SYSTEM_GC_LOCK);
-        } else {
-          // Parse and execute g-code block.
-          report_status_message(gc_execute_line(line));
-        }
-
-        // Reset tracking data for next line.
-        line_flags = 0;
-        char_counter = 0;
-
-      } else {
-
-        if (line_flags) {
-          // Throw away all (except EOL) comment characters and overflow characters.
-          if (c == ')') {
-            // End of '()' comment. Resume line allowed.
-            if (line_flags & LINE_FLAG_COMMENT_PARENTHESES) { line_flags &= ~(LINE_FLAG_COMMENT_PARENTHESES); }
-          }
-        } else {
-          if (c <= ' ') {
-            // Throw away whitepace and control characters
-          } else if (c == '/') {
-            // Block delete NOT SUPPORTED. Ignore character.
-            // NOTE: If supported, would simply need to check the system if block delete is enabled.
-          } else if (c == '(') {
-            // Enable comments flag and ignore all characters until ')' or EOL.
-            // NOTE: This doesn't follow the NIST definition exactly, but is good enough for now.
-            // In the future, we could simply remove the items within the comments, but retain the
-            // comment control characters, so that the g-code parser can error-check it.
-            line_flags |= LINE_FLAG_COMMENT_PARENTHESES;
-          } else if (c == ';') {
-            // NOTE: ';' comment to EOL is a LinuxCNC definition. Not NIST.
-            line_flags |= LINE_FLAG_COMMENT_SEMICOLON;
-          // TODO: Install '%' feature
-          // } else if (c == '%') {
-            // Program start-end percent sign NOT SUPPORTED.
-            // NOTE: This maybe installed to tell Grbl when a program is running vs manual input,
-            // where, during a program, the system auto-cycle start will continue to execute
-            // everything until the next '%' sign. This will help fix resuming issues with certain
-            // functions that empty the planner buffer to execute its task on-time.
-          } else if (char_counter >= (LINE_BUFFER_SIZE-1)) {
-            // Detect line buffer overflow and set flag.
-            line_flags |= LINE_FLAG_OVERFLOW;
-          } else if (c >= 'a' && c <= 'z') { // Upcase lowercase
-            line[char_counter++] = c-'a'+'A';
-          } else {
-            line[char_counter++] = c;
-          }
-        }
-
-      }
-    }
-
-    // If there are no more characters in the serial read buffer to be processed and executed,
-    // this indicates that g-code streaming has either filled the planner buffer or has
-    // completed. In either case, auto-cycle start, if enabled, any queued moves.
-    protocol_auto_cycle_start();
-
-    protocol_execute_realtime();  // Runtime command check point.
-    if (sys.abort) { return; } // Bail to main() program loop to reset system.
+	// During spindle synchronization (G33) no further lines are processed to keep updating the planner as fast as possible
+	// Doing this, only 1 command will be in the planner buffer. this will shorten the time to execute the speed synchronization
+	// and will allow calling the speed synchronization routine at the receive of an interrupt
+	// Real time commands like abort and hold are still processed
+	if (!spindle_synchronization_active()) {
+     while((c = serial_read()) != SERIAL_NO_DATA) {
+       if ((c == '\n') || (c == '\r')) { // End of line reached
+  
+         protocol_execute_realtime(); // Runtime command check point.
+         if (sys.abort) { return; } // Bail to calling function upon system abort
+  
+         line[char_counter] = 0; // Set string termination character.
+         #ifdef REPORT_ECHO_LINE_RECEIVED
+           report_echo_line_received(line);
+         #endif
+  
+         // Direct and execute one line of formatted input, and report status of execution.
+         if (line_flags & LINE_FLAG_OVERFLOW) {
+           // Report line overflow error.
+           report_status_message(STATUS_OVERFLOW);
+         } else if (line[0] == 0) {
+           // Empty or comment line. For syncing purposes.
+           report_status_message(STATUS_OK);
+         } else if (line[0] == '$') {
+           // Grbl '$' system command
+           report_status_message(system_execute_line(line));
+         } else if (sys.state & (STATE_ALARM | STATE_JOG)) {
+           // Everything else is gcode. Block if in alarm or jog mode.
+           report_status_message(STATUS_SYSTEM_GC_LOCK);
+         } else {
+           // Parse and execute g-code block.
+           report_status_message(gc_execute_line(line));
+         }
+  
+         // Reset tracking data for next line.
+         line_flags = 0;
+         char_counter = 0;
+  
+       } else {
+  
+         if (line_flags) {
+           // Throw away all (except EOL) comment characters and overflow characters.
+           if (c == ')') {
+             // End of '()' comment. Resume line allowed.
+             if (line_flags & LINE_FLAG_COMMENT_PARENTHESES) { line_flags &= ~(LINE_FLAG_COMMENT_PARENTHESES); }
+           }
+         } else {
+           if (c <= ' ') {
+             // Throw away whitepace and control characters
+           } else if (c == '/') {
+             // Block delete NOT SUPPORTED. Ignore character.
+             // NOTE: If supported, would simply need to check the system if block delete is enabled.
+           } else if (c == '(') {
+             // Enable comments flag and ignore all characters until ')' or EOL.
+             // NOTE: This doesn't follow the NIST definition exactly, but is good enough for now.
+             // In the future, we could simply remove the items within the comments, but retain the
+             // comment control characters, so that the g-code parser can error-check it.
+             line_flags |= LINE_FLAG_COMMENT_PARENTHESES;
+           } else if (c == ';') {
+             // NOTE: ';' comment to EOL is a LinuxCNC definition. Not NIST.
+             line_flags |= LINE_FLAG_COMMENT_SEMICOLON;
+           // TODO: Install '%' feature
+           // } else if (c == '%') {
+             // Program start-end percent sign NOT SUPPORTED.
+             // NOTE: This maybe installed to tell Grbl when a program is running vs manual input,
+             // where, during a program, the system auto-cycle start will continue to execute
+             // everything until the next '%' sign. This will help fix resuming issues with certain
+             // functions that empty the planner buffer to execute its task on-time.
+           } else if (char_counter >= (LINE_BUFFER_SIZE-1)) {
+             // Detect line buffer overflow and set flag.
+             line_flags |= LINE_FLAG_OVERFLOW;
+           } else if (c >= 'a' && c <= 'z') { // Upcase lowercase
+             line[char_counter++] = c-'a'+'A';
+           } else {
+             line[char_counter++] = c;
+           }
+         }
+  
+       }
+     }
   }
-
-  return; /* Never reached */
+     // If there are no more characters in the serial read buffer to be processed and executed,
+     // this indicates that g-code streaming has either filled the planner buffer or has
+     // completed. In either case, auto-cycle start, if enabled, any queued moves.
+     protocol_auto_cycle_start();
+  
+     protocol_execute_realtime();  // Runtime command check point.
+     if (sys.abort) { return; } // Bail to main() program loop to reset system.
+   }
+  
+   return; /* Never reached */
 }
 
 
@@ -204,7 +209,7 @@ void protocol_auto_cycle_start()
 // limit switches, or the main program.
 void protocol_execute_realtime()
 {
-  protocol_exec_rt_system();
+  protocol_exec_rt_system(); // execute all other real time teaks	
   if (sys.suspend) { protocol_exec_rt_suspend(); }
 }
 
@@ -235,6 +240,35 @@ void protocol_exec_rt_system()
       } while (bit_isfalse(sys_rt_exec_state,EXEC_RESET));
     }
     system_clear_exec_alarm(); // Clear alarm
+  }
+
+  //processing spindle index and synchronization pulses. Is done immediately after processing of the alarm to be as accurate as possible
+  //depending on settings, reports are triggered.
+  if (bit_istrue(threading_exec_flags, EXEC_SPINDLE_INDEX_PULSE)) {                         //process the detection of a spindle index pulse;
+	  system_clear_threading_exec_flag(EXEC_SPINDLE_INDEX_PULSE);
+	  if (settings.sync_pulses_per_revolution>0)	{											// If index pulses are enabled.
+		  process_spindle_index_pulse();														// Process the pulse so the RPM will be updated in the real time status report
+		  if (spindle_synchronization_active()) {												// if spindle synchronization is active
+			  if bit_istrue(settings.status_report_mask,BITFLAG_RT_STATUS_SYNC_STATE){			// if setting report mask is set for reporting the synchronization status in the real time status report
+				  system_set_threading_exec_flag((EXEC_SYNCHRONIZATION_STATE_REPORT | EXEC_SYNCHRONIZATION_STATE_REPORT_FINAL));	// set the reporting flags to report the synchronization status now and once when finished
+			  }
+			  if bit_istrue(settings.status_report_mask,BITFLAG_FEED_BACK_SYNC_STATUS){			// if setting report mask is set for synchronization error feedback
+				  system_set_threading_exec_flag((EXEC_SYNCHRONIZATION_STATE_FEEDBACK_ERROR));	// set the reporting flags to feedback the synchronization error
+			  }
+		  }
+		  if (settings.sync_pulses_per_revolution==1) {											// Just an index pulse, emulate the receive of a sync pulse.
+			  system_set_threading_exec_flag(EXEC_PLANNER_SYNC_PULSE);						    // emulate the receive of a synchronization pulse if there is only an index pulse, eliminates wiring if the is just a index pulse
+		  }
+	  }
+  }
+  if (bit_istrue(threading_exec_flags, EXEC_PLANNER_SYNC_PULSE)) {							// if a sync pulse was detected;
+	  process_spindle_synchronization_pulse();												// Synchronization pulse has to be counted before G33 becomes active
+	  if (spindle_synchronization_active()) {update_planner_feed_rate();}		    		// if spindle synchronization is active, update the planner to synchronize spindle
+	  system_clear_threading_exec_flag(EXEC_PLANNER_SYNC_PULSE);
+  }
+  if (bit_istrue(threading_exec_flags,EXEC_SYNCHRONIZATION_STATE_FEEDBACK_ERROR)){
+	  report_synchronization_error_feedback();
+	  system_clear_threading_exec_flag(EXEC_SYNCHRONIZATION_STATE_FEEDBACK_ERROR);
   }
 
   rt_exec = sys_rt_exec_state; // Copy volatile sys_rt_exec_state.

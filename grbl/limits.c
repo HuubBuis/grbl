@@ -66,24 +66,48 @@ void limits_disable()
 // Returns limit state as a bit-wise uint8 variable. Each bit indicates an axis limit, where
 // triggered is 1 and not triggered is 0. Invert mask is applied. Axes are defined by their
 // number in bit position, i.e. Z_AXIS is (1<<2) or bit 2, and Y_AXIS is (1<<1) or bit 1.
-uint8_t limits_get_state()
+// For G33 implementation, the y-axis limit pin is used as index pulse. To avoid unwanted limit pin hits, the state of the y-axis has to be masked at some points in the code.
+// This is done by passing the pins that have to be checked as parameter.
+uint8_t limits_get_state(uint8_t selected_pins)
 {
   uint8_t limit_state = 0;
-  uint8_t pin = (LIMIT_PIN & LIMIT_MASK);
-  #ifdef INVERT_LIMIT_PIN_MASK
-    pin ^= INVERT_LIMIT_PIN_MASK;
-  #endif
-  if (bit_isfalse(settings.flags,BITFLAG_INVERT_LIMIT_PINS)) { pin ^= LIMIT_MASK; }
-  if (pin) {
-    uint8_t idx;
-    for (idx=0; idx<N_AXIS; idx++) {
-      if (pin & get_limit_pin_mask(idx)) { limit_state |= (1 << idx); }
+    uint8_t pin = (LIMIT_PIN & LIMIT_MASK);
+    #ifdef INVERT_LIMIT_PIN_MASK
+      pin ^= INVERT_LIMIT_PIN_MASK;
+    #endif
+    if (bit_isfalse(settings.flags,BITFLAG_INVERT_LIMIT_PINS)) { pin ^= LIMIT_MASK; }
+    if (pin) {
+	    uint8_t idx;
+	    for (idx=0; idx<N_AXIS; idx++) {
+		    if (pin & get_limit_pin_mask(idx)) { limit_state |= (1 << idx); }
+	    }
     }
-  }
-  return(limit_state);
+    limit_state &= selected_pins;
+    return(limit_state);
 }
-
-
+  
+//Processes the limit pins change events.
+//It is called when the limit pins change event is trigged eventually after a software debounce
+// Ignore limit switches if already in an alarm state or in-process of executing an alarm.
+// When in the alarm state, Grbl should have been reset or will force a reset, so any pending
+// moves in the planner and serial buffers are all cleared and newly sent blocks will be
+// locked out until a homing cycle or a kill lock command. Allows the user to disable the hard
+// limit setting if their limits are constantly triggering after a reset and move their axes.
+void process_limit_pin_change_event()
+{
+	if (sys.state != STATE_ALARM) {
+    	if (!(sys_rt_exec_alarm)) {
+			if (limits_get_state(LIMIT_MASK_Y_AXIS)) {	// This is the lathe version, Y-axis limit pin hits are spindle index pulses so handle them and do not reset controller
+				system_set_threading_exec_flag(EXEC_SPINDLE_INDEX_PULSE);	// pin is index pulse
+			}
+			else
+			if (limits_get_state(LIMIT_MASK_ALL_EXCEPT_Y_AXIS)) { // handle all axis except the y-axis
+				mc_reset(); // Initiate system kill.
+				system_set_exec_alarm(EXEC_ALARM_HARD_LIMIT); // Indicate hard limit critical event
+			}
+		}
+	}
+}
 // This is the Limit Pin Change Interrupt, which handles the hard limit feature. A bouncing
 // limit switch can cause a lot of problems, like false readings and multiple interrupt calls.
 // If a switch is triggered at all, something bad has happened and treat it as such, regardless
@@ -95,44 +119,29 @@ uint8_t limits_get_state()
 // homing cycles and will not respond correctly. Upon user request or need, there may be a
 // special pinout for an e-stop, but it is generally recommended to just directly connect
 // your e-stop switch to the Arduino reset pin, since it is the most correct way to do this.
+
 #ifndef ENABLE_SOFTWARE_DEBOUNCE
   ISR(LIMIT_INT_vect) // DEFAULT: Limit pin change interrupt process.
   {
-    // Ignore limit switches if already in an alarm state or in-process of executing an alarm.
-    // When in the alarm state, Grbl should have been reset or will force a reset, so any pending
-    // moves in the planner and serial buffers are all cleared and newly sent blocks will be
-    // locked out until a homing cycle or a kill lock command. Allows the user to disable the hard
-    // limit setting if their limits are constantly triggering after a reset and move their axes.
-    if (sys.state != STATE_ALARM) {
-      if (!(sys_rt_exec_alarm)) {
-        #ifdef HARD_LIMIT_FORCE_STATE_CHECK
-          // Check limit pin state.
-          if (limits_get_state()) {
-            mc_reset(); // Initiate system kill.
-            system_set_exec_alarm(EXEC_ALARM_HARD_LIMIT); // Indicate hard limit critical event
-          }
-        #else
-          mc_reset(); // Initiate system kill.
-          system_set_exec_alarm(EXEC_ALARM_HARD_LIMIT); // Indicate hard limit critical event
-        #endif
-      }
-    }
+	  process_limit_pin_change_event(); //no debouncing
   }
 #else // OPTIONAL: Software debounce limit pin routine.
-  // Upon limit pin change, enable watchdog timer to create a short delay. 
-  ISR(LIMIT_INT_vect) { if (!(WDTCSR & (1<<WDIE))) { WDTCSR |= (1<<WDIE); } }
+  // Upon limit pin change, Software debounce by enabling watchdog timer that will handle the pin change after a short delay (watchdog time out).
+  ISR(LIMIT_INT_vect)
+  {
+	  if (limits_get_state(LIMIT_MASK_Y_AXIS)) {
+	    process_limit_pin_change_event(); //no debouncing
+	  } else {
+		if (!(WDTCSR & (1<<WDIE))) { // If the watchdog is not enabled 
+		  WDTCSR |= (1<<WDIE);   // Enable watchdog
+		}
+     }
+  }
+  //Watch dog timeout interrupt (33 ms), disable watchdog and call pin change event
   ISR(WDT_vect) // Watchdog timer ISR
   {
-    WDTCSR &= ~(1<<WDIE); // Disable watchdog timer. 
-    if (sys.state != STATE_ALARM) {  // Ignore if already in alarm state. 
-      if (!(sys_rt_exec_alarm)) {
-        // Check limit pin state. 
-        if (limits_get_state()) {
-          mc_reset(); // Initiate system kill.
-          system_set_exec_alarm(EXEC_ALARM_HARD_LIMIT); // Indicate hard limit critical event
-        }
-      }  
-    }
+    WDTCSR &= ~(1<<WDIE); // Disable watchdog timer.
+    process_limit_pin_change_event(); //debounced, now process
   }
 #endif
 
@@ -233,7 +242,7 @@ void limits_go_home(uint8_t cycle_mask)
     do {
       if (approach) {
         // Check limit state. Lock out cycle axes when they change.
-        limit_state = limits_get_state();
+        limit_state = limits_get_state(LIMIT_PIN_MASK_ALL);
         for (idx=0; idx<N_AXIS; idx++) {
           if (axislock & step_pin[idx]) {
             if (limit_state & (1 << idx)) {
@@ -259,7 +268,7 @@ void limits_go_home(uint8_t cycle_mask)
         // Homing failure condition: Safety door was opened.
         if (rt_exec & EXEC_SAFETY_DOOR) { system_set_exec_alarm(EXEC_ALARM_HOMING_FAIL_DOOR); }
         // Homing failure condition: Limit switch still engaged after pull-off motion
-        if (!approach && (limits_get_state() & cycle_mask)) { system_set_exec_alarm(EXEC_ALARM_HOMING_FAIL_PULLOFF); }
+        if (!approach && (limits_get_state(LIMIT_PIN_MASK_ALL) & cycle_mask)) { system_set_exec_alarm(EXEC_ALARM_HOMING_FAIL_PULLOFF); }
         // Homing failure condition: Limit switch not found during approach.
         if (approach && (rt_exec & EXEC_CYCLE_STOP)) { system_set_exec_alarm(EXEC_ALARM_HOMING_FAIL_APPROACH); }
         if (sys_rt_exec_alarm) {

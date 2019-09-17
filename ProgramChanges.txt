@@ -1,0 +1,10 @@
+Program changes to add spindle sync threading to GRBL arduino verion
+
+The prescaler of the 8 bit timer 2 is adjusted to 1/1024. This results in a timer resolution of 64 us. At a feedrate of 12 mm/min the resolution is 0.00128 mm, more than enough.
+An overflow interrupt is added to timer2. It generates an overflow every (256*0.000064) 16 ms. The impact on the CPU load is minimal.
+The register to change and the mask to initialize is set in cpu_map.h
+#define SPINDLE_TIMER_INTERRUPT_MASK_REGISTER TIMSK2
+#define SPINDLE_TIMER_INTERRUPT_MASK_INIT  TIMSK2 (1<<TOIE2)
+The overflows are counted and together with the timer 2 count (TCNT2), it results in a 32 bit 64 us resolution timer. This 32 bit timer is used for measuring the spindle speed.
+
+Y-Limit pulses are used as index pulse. To achieve this, Y-limit hits are ingnored and processed as Index pulse.

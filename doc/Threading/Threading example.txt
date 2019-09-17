@@ -1,0 +1,5 @@
+G0 X1 Z0 ; go to start position
+G0 X-0.5 ; go to cutting depth, clear of workpiece
+G90 G33 Z-5 K1 ;  Threading pass at a pitch of 1 unit per revolution.
+G0X1 ; retract at end of move
+Z0 ; end of pass 

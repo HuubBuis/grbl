@@ -67,7 +67,21 @@
   #else
     #define Z_LIMIT_BIT    3  // Uno Digital Pin 11
   #endif
-  #define LIMIT_MASK       ((1<<X_LIMIT_BIT)|(1<<Y_LIMIT_BIT)|(1<<Z_LIMIT_BIT)) // All limit bits
+  #define LIMIT_MASK				   ((1<<X_LIMIT_BIT)|(1<<Y_LIMIT_BIT)|(1<<Z_LIMIT_BIT))		// All limit pins
+  //additional defines for spindle sync G33
+  //#define LIMIT_MASK_Y_AXIS			   (1<<Y_LIMIT_BIT)										    // Y-Axis pin
+  //#define LIMIT_MASK_ALL_EXCEPT_Y_AXIS ((1<<X_LIMIT_BIT)|(1<<Z_LIMIT_BIT))			            // All limit pins except Y-Axis
+  
+  //Define for use on a lathe, enabled by default because this is a GRBL lathe version
+  #define LIMIT_MASK_Y_AXIS 2					// Y-Axis limit
+  #define LIMIT_MASK_ALL	7					// All Axis limit
+  #define LIMIT_MASK_ALL_EXCEPT_Y_AXIS 5		// All Axis limit except Y-Axis
+
+  
+  #define LIMIT_PIN_MASK_Y_AXIS 2					//Y-Axis pin
+  #define LIMIT_PIN_MASK_ALL	7					//All pins
+  #define LIMIT_PIN_MASK_ALL_EXCEPT_Y_AXIS 5		//All pins except Y-Axis pin
+
   #define LIMIT_INT        PCIE0  // Pin change interrupt enable pin
   #define LIMIT_INT_vect   PCINT0_vect
   #define LIMIT_PCMSK      PCMSK0 // Pin change interrupt register
@@ -100,7 +114,7 @@
   #define COOLANT_MIST_PORT  PORTC
   #define COOLANT_MIST_BIT   4  // Uno Analog Pin 4
 
-  // Define user-control controls (cycle start, reset, feed hold) input pins.
+  // Define user-control controls (cycle start, reset, feed hold) input pins and the spindle synchronization (not index) pin.
   // NOTE: All CONTROLs pins must be on the same port and not on a port with other input pins (limits).
   #define CONTROL_DDR       DDRC
   #define CONTROL_PIN       PINC
@@ -109,10 +123,12 @@
   #define CONTROL_FEED_HOLD_BIT     1  // Uno Analog Pin 1
   #define CONTROL_CYCLE_START_BIT   2  // Uno Analog Pin 2
   #define CONTROL_SAFETY_DOOR_BIT   1  // Uno Analog Pin 1 NOTE: Safety door is shared with feed hold. Enabled by config define.
+  #define CONTROL_SPINDLE_SYNC_BIT  5 //  Uno Analog Pin 5 NOTE: Spindle sync is shared with the probe pin
+  
   #define CONTROL_INT       PCIE1  // Pin change interrupt enable pin
   #define CONTROL_INT_vect  PCINT1_vect
   #define CONTROL_PCMSK     PCMSK1 // Pin change interrupt register
-  #define CONTROL_MASK      ((1<<CONTROL_RESET_BIT)|(1<<CONTROL_FEED_HOLD_BIT)|(1<<CONTROL_CYCLE_START_BIT)|(1<<CONTROL_SAFETY_DOOR_BIT))
+  #define CONTROL_MASK      ((1<<CONTROL_RESET_BIT)|(1<<CONTROL_FEED_HOLD_BIT)|(1<<CONTROL_CYCLE_START_BIT)|(1<<CONTROL_SAFETY_DOOR_BIT)|(1<<CONTROL_SPINDLE_SYNC_BIT))
   #define CONTROL_INVERT_MASK   CONTROL_MASK // May be re-defined to only invert certain control pins.
 
   // Define probe switch input pin.
@@ -136,11 +152,23 @@
   #define SPINDLE_COMB_BIT	        COM2A1
 
   // Prescaled, 8-bit Fast PWM mode.
-  #define SPINDLE_TCCRA_INIT_MASK   ((1<<WGM20) | (1<<WGM21))  // Configures fast PWM mode.
-  // #define SPINDLE_TCCRB_INIT_MASK   (1<<CS20)               // Disable prescaler -> 62.5kHz
-  // #define SPINDLE_TCCRB_INIT_MASK   (1<<CS21)               // 1/8 prescaler -> 7.8kHz (Used in v0.9)
-  // #define SPINDLE_TCCRB_INIT_MASK   ((1<<CS21) | (1<<CS20)) // 1/32 prescaler -> 1.96kHz
-  #define SPINDLE_TCCRB_INIT_MASK      (1<<CS22)               // 1/64 prescaler -> 0.98kHz (J-tech laser)
+  #define SPINDLE_TCCRA_INIT_MASK   ((1<<WGM20) | (1<<WGM21))				// Configures fast PWM mode.
+  // #define SPINDLE_TCCRB_INIT_MASK   (1<<CS20)							// Disable prescaler -> 62.5kHz
+  // #define SPINDLE_TCCRB_INIT_MASK   (1<<CS21)							// 1/8 prescaler -> 7.8kHz (Used in v0.9)
+  // #define SPINDLE_TCCRB_INIT_MASK   ((1<<CS21) | (1<<CS20))				// 1/32 prescaler -> 1.96kHz
+  //#define SPINDLE_TCCRB_INIT_MASK      (1<<CS22)							// 1/64 prescaler -> 0.98kHz (J-tech laser)  4 us/tic, laser not used in lathe version, reduce timer overflow performance penalty
+  //#define SPINDLE_TCCRB_INIT_MASK      ((1<<CS22) | (1<<CS20))			// 1/128 prescaler -> 490 Hz (J-tech laser)  8 us/tic, laser not used in lathe version, reduce timer overflow performance penalty
+  //#define SPINDLE_TCCRB_INIT_MASK      ((1<<CS22) | (1<<CS21))			// 1/256 prescaler -> 245 Hz (J-tech laser) 16 us/tic, laser not used in lathe version, reduce timer overflow performance penalty
+  #define SPINDLE_TCCRB_INIT_MASK      ((1<<CS22) | (1<<CS21) | (1<<CS20))	// 1/1024 prescaler -> 62 Hz (J-tech laser) 64 us/tic, laser not used in lathe version, reduce timer overflow performance penalty
+  
+  //Timer2 overflow interrupt is used for spindle sync threading
+  #define SPINDLE_TIMER_INTERRUPT_MASK_REGISTER TIMSK2
+  #define SPINDLE_TIMER_INTERRUPT_MASK_INIT  (1<<TOIE2)
+  //#define TIMER_TICS_PER_MINUTE   15000000UL							    // Timer 2 prescaler 1/64.  The number of timer tics between spindle index pulses when running at 1 RPM.
+  //#define TIMER_TICS_PER_MINUTE    7500000UL	    						// Timer 2 prescaler 1/128.  The number of timer tics between spindle index pulses when running at 1 RPM.
+  //#define TIMER_TICS_PER_MINUTE    3750000UL								// Timer 2 prescaler 1/256.  The number of timer tics between spindle index pulses when running at 1 RPM.
+  #define TIMER_TICS_PER_MINUTE		  937500UL								// Timer 2 prescaler 1/1024.  The number of timer tics between spindle index pulses when running at 1 RPM.
+  #define TIMER_COUNTER_WIDTH 8												// Timer 2 is an 8 bit counter, used in timekeeper for overflow value_
 
   // NOTE: On the 328p, these must be the same as the SPINDLE_ENABLE settings.
   #define SPINDLE_PWM_DDR	  DDRB

@@ -37,6 +37,18 @@
 #define EXEC_MOTION_CANCEL  bit(6) // bitmask 01000000
 #define EXEC_SLEEP          bit(7) // bitmask 10000000
 
+#define EXEC_SPINDLE_INDEX_PULSE  bit(0) // bitmask 00000001
+#define EXEC_PLANNER_SYNC_PULSE   bit(1) // bitmask 00000010
+#define EXEC_SYNCHRONIZATION_STATE_REPORT bit(2) // bitmask 00000100
+#define EXEC_SYNCHRONIZATION_STATE_REPORT_FINAL bit(3) // bitmask 000001000
+#define EXEC_SYNCHRONIZATION_STATE_FEEDBACK_ERROR bit(4) // bitmask 00010000
+
+#define EXEC_SPINDLE_INDEX_PULSE  bit(0) // bitmask 00000001
+#define EXEC_PLANNER_SYNC_PULSE   bit(1) // bitmask 00000010
+#define EXEC_SYNCHRONIZATION_STATE_REPORT bit(2) // bitmask 00000100
+#define EXEC_SYNCHRONIZATION_STATE_REPORT_FINAL bit(3) // bitmask 000001000
+#define EXEC_SYNCHRONIZATION_STATE_FEEDBACK_ERROR bit(4) // bitmask 00010000
+
 // Alarm executor codes. Valid values (1-255). Zero is reserved.
 #define EXEC_ALARM_HARD_LIMIT           1
 #define EXEC_ALARM_SOFT_LIMIT           2
@@ -102,16 +114,18 @@
 
 // Define control pin index for Grbl internal use. Pin maps may change, but these values don't.
 #ifdef ENABLE_SAFETY_DOOR_INPUT_PIN
-  #define N_CONTROL_PIN 4
+  #define N_CONTROL_PIN 5
   #define CONTROL_PIN_INDEX_SAFETY_DOOR   bit(0)
   #define CONTROL_PIN_INDEX_RESET         bit(1)
   #define CONTROL_PIN_INDEX_FEED_HOLD     bit(2)
   #define CONTROL_PIN_INDEX_CYCLE_START   bit(3)
+  #define CONTROL_PIN_INDEX_SPINDLE_SYNC  bit(4)
 #else
   #define N_CONTROL_PIN 3
   #define CONTROL_PIN_INDEX_RESET         bit(0)
   #define CONTROL_PIN_INDEX_FEED_HOLD     bit(1)
   #define CONTROL_PIN_INDEX_CYCLE_START   bit(2)
+  #define CONTROL_PIN_INDEX_SPINDLE_SYNC  bit(3)
 #endif
 
 // Define spindle stop override control states.
@@ -203,6 +217,7 @@ void system_set_exec_motion_override_flag(uint8_t mask);
 void system_set_exec_accessory_override_flag(uint8_t mask);
 void system_clear_exec_motion_overrides();
 void system_clear_exec_accessory_overrides();
-
+void system_clear_threading_exec_flag(uint8_t mask);
+void system_set_threading_exec_flag(uint8_t mask);
 
 #endif

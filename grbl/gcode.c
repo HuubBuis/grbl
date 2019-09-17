@@ -160,6 +160,10 @@ uint8_t gc_execute_line(char *line)
               mantissa = 0; // Set to zero to indicate valid non-integer G command.
             }                
             break;
+		  case 33: //Check if Synchronization pulses per revolution is set and hardware limits are enabled
+		    if (settings.sync_pulses_per_revolution==0) FAIL(STATUS_GCODE_G33_SYNCHRONIZATION_PULSES_PER_REVOLUTION_NOT_SET);
+			if (bit_isfalse(settings.flags,BITFLAG_HARD_LIMIT_ENABLE)) FAIL(STATUS_GCODE_G33_HARDWARE_LIMITS_NOT_ENABLED);
+			// No break. Continues to next line.
           case 0: case 1: case 2: case 3: case 38:
             // Check for G0/1/2/3/38 being called with G10/28/30/92 on same block.
             // * G43.1 is also an axis command but is not explicitly defined this way.
@@ -304,7 +308,7 @@ uint8_t gc_execute_line(char *line)
           // case 'H': // Not supported
           case 'I': word_bit = WORD_I; gc_block.values.ijk[X_AXIS] = value; ijk_words |= (1<<X_AXIS); break;
           case 'J': word_bit = WORD_J; gc_block.values.ijk[Y_AXIS] = value; ijk_words |= (1<<Y_AXIS); break;
-          case 'K': word_bit = WORD_K; gc_block.values.ijk[Z_AXIS] = value; ijk_words |= (1<<Z_AXIS); break;
+          case 'K': word_bit = WORD_K; gc_block.values.ijk[Z_AXIS] = value; ijk_words |= (1<<Z_AXIS); break;  //K is also used in G33
           case 'L': word_bit = WORD_L; gc_block.values.l = int_value; break;
           case 'N': word_bit = WORD_N; gc_block.values.n = trunc(value); break;
           case 'P': word_bit = WORD_P; gc_block.values.p = value; break;
@@ -657,13 +661,18 @@ uint8_t gc_execute_line(char *line)
       // Axis words are optional. If missing, set axis command flag to ignore execution.
       if (!axis_words) { axis_command = AXIS_COMMAND_NONE; }
 
-    // All remaining motion modes (all but G0 and G80), require a valid feed rate value. In units per mm mode,
+    // All remaining motion modes (all but G0, G33 and G80), require a valid feed rate value. In units per mm mode,
     // the value must be positive. In inverse time mode, a positive value must be passed with each block.
     } else {
       // Check if feed rate is defined for the motion modes that require it.
-      if (gc_block.values.f == 0.0) { FAIL(STATUS_GCODE_UNDEFINED_FEED_RATE); } // [Feed rate undefined]
-
+	  if (gc_block.modal.motion!=MOTION_MODE_SPINDLE_SYNC)   //G33 doesn't require feedrate.
+        if (gc_block.values.f == 0.0) { FAIL(STATUS_GCODE_UNDEFINED_FEED_RATE); } // [Feed rate undefined]
       switch (gc_block.modal.motion) {
+		case MOTION_MODE_SPINDLE_SYNC:
+		  if  bit_isfalse(value_words,bit(WORD_K)) { FAIL(STATUS_GCODE_VALUE_WORD_MISSING); }				// [K value not given]
+		  else if  bit_istrue(value_words,bit(WORD_F)) { FAIL(STATUS_GCODE_UNUSED_WORDS); }					// [F value given, but not needed], the check on other unused words will be done at the end
+		  else if (gc_block.modal.units == UNITS_MODE_INCHES) {gc_block.values.ijk[Z_AXIS] *= MM_PER_INCH;}	//calculate for inches
+		  bit_false(value_words,bit(WORD_K));	//clear K word
         case MOTION_MODE_LINEAR:
           // [G1 Errors]: Feed rate undefined. Axis letter not configured or without real value.
           // Axis words are optional. If missing, set axis command flag to ignore execution.
@@ -1041,7 +1050,6 @@ uint8_t gc_execute_line(char *line)
       break;
   }
 
-
   // [20. Motion modes ]:
   // NOTE: Commands G10,G28,G30,G92 lock out and prevent axis words from use in motion modes.
   // Enter motion modes only if there are axis words or a motion mode command word in the block.
@@ -1051,6 +1059,26 @@ uint8_t gc_execute_line(char *line)
       uint8_t gc_update_pos = GC_UPDATE_POS_TARGET;
       if (gc_state.modal.motion == MOTION_MODE_LINEAR) {
         mc_line(gc_block.values.xyz, pl_data);
+	  } else if (gc_state.modal.motion == MOTION_MODE_SPINDLE_SYNC) {
+	    protocol_buffer_synchronize();						// Sync and finish all remaining buffered motions before moving on.
+	    threading_init(gc_block.values.ijk[Z_AXIS]);		//initialize a threading pass, all counters are cleared, check on index pulses timeout can be done
+	    pl_data->condition |= (PL_COND_FLAG_FEED_PER_REV | PL_COND_FLAG_NO_FEED_OVERRIDE);	//During threading (G33) no feed override. Set condition to allow updating the feed rate at every sync pulse
+	    while (threading_index_pulse_count<SPINDLE_INDEX_PULSES_BEFORE_START_G33){
+		  if (get_timer_ticks()>(uint32_t)((TIMER_TICS_PER_MINUTE*SPINDLE_INDEX_PULSES_BEFORE_START_G33)/MINIMAL_SPINDLE_SPEED_G33)){ // Check if the spindle pulses are fast enough
+		    FAIL(STATUS_INDEX_PULSE_TIMEOUT);
+		  }
+		protocol_exec_rt_system();							//process real time commands until the spindle has made enough revolutions or a timeout occurs
+	    }
+	    if (settings.sync_pulses_per_revolution>1) {		//There are synchronization pulses so also waiting for the next synchronization pulse
+		  threading_sync_pulse_count=0;
+		  while (threading_sync_pulse_count==0){
+		    if  (get_timer_ticks()>((TIMER_TICS_PER_MINUTE*(SPINDLE_INDEX_PULSES_BEFORE_START_G33+1L))/MINIMAL_SPINDLE_SPEED_G33))				//Check if the sync pulses are fast enough
+			  FAIL(STATUS_SYNCHRONIZATION_PULSE_TIMEOUT);
+			protocol_exec_rt_system();						//process real time commands until the spindle has made enough revolutions or a timeout occurs
+		  }
+	    }
+	    pl_data->feed_rate=gc_block.values.ijk[Z_AXIS] * threading_index_spindle_speed;		//set the start feed rate
+	    mc_line(gc_block.values.xyz, pl_data);	//execute the motion	
       } else if (gc_state.modal.motion == MOTION_MODE_SEEK) {
         pl_data->condition |= PL_COND_FLAG_RAPID_MOTION; // Set rapid motion condition flag.
         mc_line(gc_block.values.xyz, pl_data);
@@ -1063,7 +1091,7 @@ uint8_t gc_execute_line(char *line)
         #ifndef ALLOW_FEED_OVERRIDE_DURING_PROBE_CYCLES
           pl_data->condition |= PL_COND_FLAG_NO_FEED_OVERRIDE;
         #endif
-        gc_update_pos = mc_probe_cycle(gc_block.values.xyz, pl_data, gc_parser_flags);
+        //gc_update_pos = mc_probe_cycle(gc_block.values.xyz, pl_data, gc_parser_flags);
       }  
      
       // As far as the parser is concerned, the position is now == target. In reality the
