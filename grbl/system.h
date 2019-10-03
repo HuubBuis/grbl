@@ -37,11 +37,11 @@
 #define EXEC_MOTION_CANCEL  bit(6) // bitmask 01000000
 #define EXEC_SLEEP          bit(7) // bitmask 10000000
 
-#define EXEC_SPINDLE_INDEX_PULSE  bit(0) // bitmask 00000001
-#define EXEC_PLANNER_SYNC_PULSE   bit(1) // bitmask 00000010
-#define EXEC_SYNCHRONIZATION_STATE_REPORT bit(2) // bitmask 00000100
-#define EXEC_SYNCHRONIZATION_STATE_REPORT_FINAL bit(3) // bitmask 000001000
-#define EXEC_SYNCHRONIZATION_STATE_FEEDBACK_ERROR bit(4) // bitmask 00010000
+#define EXEC_SPINDLE_INDEX_PULSE  bit(0)				// bitmask 00000001
+#define EXEC_PLANNER_SYNC_PULSE   bit(1)				// bitmask 00000010
+#define EXEC_SYNCHRONIZATION_STATE_REPORT bit(2)		// bitmask 00000100
+#define EXEC_SYNCHRONIZATION_STATE_REPORT_FINAL bit(3)	// bitmask 00001000
+#define EXEC_SYNCHRONIZATION_STATE_FEEDBACK_ERROR bit(4)// bitmask 00010000
 
 // Alarm executor codes. Valid values (1-255). Zero is reserved.
 #define EXEC_ALARM_HARD_LIMIT           1
