@@ -1067,7 +1067,7 @@ uint8_t gc_execute_line(char *line)
 		  if (get_timer_ticks()>(uint32_t)((TIMER_TICS_PER_MINUTE*SPINDLE_INDEX_PULSES_BEFORE_START_G33)/MINIMAL_SPINDLE_SPEED_G33)){ // Check if the spindle pulses are fast enough
 		    FAIL(STATUS_INDEX_PULSE_TIMEOUT);
 		  }
-		protocol_exec_rt_system();							//process real time commands until the spindle has made enough revolutions or a timeout occurs
+		  protocol_exec_rt_system();			     		//process real time commands until the spindle has made enough revolutions or a timeout occurs
 	    }
 	    if (settings.sync_pulses_per_revolution>1) {		//There are synchronization pulses so also waiting for the next synchronization pulse
 		  threading_sync_pulse_count=0;
