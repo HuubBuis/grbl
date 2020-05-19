@@ -97,9 +97,9 @@ void process_limit_pin_change_event()
 {
 	if (sys.state != STATE_ALARM) {
     	if (!(sys_rt_exec_alarm)) {
-			if (limits_get_state(LIMIT_MASK_Y_AXIS)) {	// This is the lathe version, Y-axis limit pin hits are spindle index pulses so handle them and do not reset controller
-				system_set_threading_exec_flag(EXEC_SPINDLE_INDEX_PULSE);	// pin is index pulse
-			}
+			  if (index_pulse_active()) {	// This is the lathe version, Y-axis limit pin hits are spindle index pulses so handle them and do not reset controller
+				  system_set_threading_exec_flag(EXEC_SPINDLE_INDEX_PULSE);	// pin is index pulse
+			  }
 			else
 			if (limits_get_state(LIMIT_MASK_ALL_EXCEPT_Y_AXIS)) { // handle all axis except the y-axis
 				mc_reset(); // Initiate system kill.
@@ -129,7 +129,7 @@ void process_limit_pin_change_event()
   // Upon limit pin change, Software debounce by enabling watchdog timer that will handle the pin change after a short delay (watchdog time out).
   ISR(LIMIT_INT_vect)
   {
-	  if (limits_get_state(LIMIT_MASK_Y_AXIS)) {
+	  if (index_pulse_active()) {
 	    process_limit_pin_change_event(); //no debouncing
 	  } else {
 		if (!(WDTCSR & (1<<WDIE))) { // If the watchdog is not enabled 

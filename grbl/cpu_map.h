@@ -73,13 +73,13 @@
   //#define LIMIT_MASK_ALL_EXCEPT_Y_AXIS ((1<<X_LIMIT_BIT)|(1<<Z_LIMIT_BIT))			            // All limit pins except Y-Axis
   
   //Define for use on a lathe, enabled by default because this is a GRBL lathe version
-  #define LIMIT_MASK_Y_AXIS 2					// Y-Axis limit
-  #define LIMIT_MASK_ALL	7					// All Axis limit
-  #define LIMIT_MASK_ALL_EXCEPT_Y_AXIS 5		// All Axis limit except Y-Axis
+  #define LIMIT_MASK_Y_AXIS 2					    // Y-Axis limit
+  #define LIMIT_MASK_ALL	7					      // All Axis limit
+  #define LIMIT_MASK_ALL_EXCEPT_Y_AXIS 5	// All Axis limit except Y-Axis
 
   
   #define LIMIT_PIN_MASK_Y_AXIS 2					//Y-Axis pin
-  #define LIMIT_PIN_MASK_ALL	7					//All pins
+  #define LIMIT_PIN_MASK_ALL	7					  //All pins
   #define LIMIT_PIN_MASK_ALL_EXCEPT_Y_AXIS 5		//All pins except Y-Axis pin
 
   #define LIMIT_INT        PCIE0  // Pin change interrupt enable pin

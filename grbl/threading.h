@@ -41,4 +41,6 @@ void process_spindle_synchronization_pulse();
 void update_planner_feed_rate();
 void threading_reset();
 bool spindle_synchronization_active();
+bool index_pulse_active();
+bool sync_pulse_active();
 #endif

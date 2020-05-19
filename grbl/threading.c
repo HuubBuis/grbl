@@ -100,3 +100,17 @@ bool spindle_synchronization_active()
 	return false;
 }
 
+// Returns true if the index pulse is active
+bool index_pulse_active()
+{
+  return (limits_get_state(LIMIT_MASK_Y_AXIS)); 	// This is the lathe version, Y-axis limit pin hits are spindle index pulses so handle them and do not reset controller
+}
+
+// Returns true if the sync pulse is active
+bool sync_pulse_active()
+{
+  uint8_t pin = system_control_get_state();
+  if (settings.sync_pulses_per_revolution==1)										  // If there is just an index pulse, return the index pulse status.
+    return index_pulse_active();
+	return (bit_istrue(pin,CONTROL_PIN_INDEX_SPINDLE_SYNC)); 				// Detected a G33 spindle synchronization pulse. Beware, this is not the spindle index pulse
+}

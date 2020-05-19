@@ -80,10 +80,10 @@ ISR(CONTROL_INT_vect)
         bit_true(sys_rt_exec_state, EXEC_SAFETY_DOOR);
 	}
     #endif
-	if (bit_istrue(pin,CONTROL_PIN_INDEX_SPINDLE_SYNC)) {				// Detected a G33 spindle synchronization pulse. Beware, this is not the spindle index pulse
+	if (sync_pulse_active()) {				                        // Detected a G33 spindle synchronization pulse. Beware, this is not the spindle index pulse
 	  if (settings.sync_pulses_per_revolution>1) { 						// If G33 is configured for synchronization pulses
-		bit_true(threading_exec_flags,EXEC_PLANNER_SYNC_PULSE);			// Signal the detection of a synchronization pulse.
-      }
+		  bit_true(threading_exec_flags,EXEC_PLANNER_SYNC_PULSE);	// Signal the detection of a synchronization pulse.
+     }
     }
   }
 }
