@@ -1091,7 +1091,7 @@ uint8_t gc_execute_line(char *line)
         #ifndef ALLOW_FEED_OVERRIDE_DURING_PROBE_CYCLES
           pl_data->condition |= PL_COND_FLAG_NO_FEED_OVERRIDE;
         #endif
-        //gc_update_pos = mc_probe_cycle(gc_block.values.xyz, pl_data, gc_parser_flags);
+        gc_update_pos = mc_probe_cycle(gc_block.values.xyz, pl_data, gc_parser_flags);
       }  
      
       // As far as the parser is concerned, the position is now == target. In reality the
