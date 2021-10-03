@@ -219,7 +219,11 @@ void st_wake_up()
   // Initialize stepper output bits to ensure first ISR call does not step.
   st.step_outbits = step_port_invert_mask;
 
-  // Initialize step pulse timing from settings. Here to ensure updating after re-writing.
+  #ifdef STEP_ENABLE_DELAY
+	delay_ms(settings.stepper_idle_lock_time);  //Wait a bit to give the driver time to wake up. Is used for servo drivers in step-dir mode like Lichuan
+  #endif 
+
+// Initialize step pulse timing from settings. Here to ensure updating after re-writing.
   #ifdef STEP_PULSE_DELAY
     // Set total step pulse time after direction pin set. Ad hoc computation from oscilloscope.
     st.step_pulse_time = -(((settings.pulse_microseconds+STEP_PULSE_DELAY-2)*TICKS_PER_MICROSECOND) >> 3);

@@ -12,9 +12,15 @@ Global variables use 1633 bytes (79%) of dynamic memory, leaving 415 bytes for l
 All code changed implemented, tested ok on the bench using simulated spindle index and synchronization pulse.
 Dynamic memory is less than the original GRBL version.
 Disabled all laser defines in config.h to reduce code to avoid memory errors when in future, Arduino IDE updates its boards or compiler
+
 Release 20190820 board version 1.6.22 IDE 1.8.9
 Sketch uses 32008 bytes (99%) of program storage space. Maximum is 32256 bytes.
 Global variables use 1592 bytes (77%) of dynamic memory, leaving 456 bytes for local variables. Maximum is 2048 bytes.
-Release 20190820 board version 1.8.1 IDE 1.8.10
+
+Release 20190820 board version 1.6.22 IDE 1.8.10
 Sketch uses 31844 bytes (98%) of program storage space. Maximum is 32256 bytes.
 Global variables use 1592 bytes (77%) of dynamic memory, leaving 456 bytes for local variables. Maximum is 2048 bytes.
+
+AFter enabling probe, implementing Lichuan servo STEP_ENABLE_DELAY and updated threading synchronisation:
+Release 20211002 board version 1.6.23, IDE 1.8.15
+Sketch uses 32148 bytes (99%) of program storage space. Maximum is 32256 bytes.Global variables use 1596 bytes (77%) of dynamic memory, leaving 452 bytes for local variables. Maximum is 2048 bytes. 
