@@ -1,6 +1,7 @@
 #include "grbl.h"
 
 volatile uint32_t overflow_offset;
+volatile uint32_t timer_tic_count_base;
 
 // triggers a real time status report, used for debugging development
 void signal_report_realtime_status()
@@ -16,17 +17,21 @@ ISR(TIMER2_OVF_vect) {
 //initializes the timekeeper by enabling the timer2 overflow interrupt and resetting the timer
 void timekeeper_init() {
   // Configure Timer 2: spindle timer for interrupt on overflow
-  SPINDLE_TIMER_INTERRUPT_MASK_REGISTER|=SPINDLE_TIMER_INTERRUPT_MASK_INIT;	//Enable the timer2 overflow
+  SPINDLE_TIMER_INTERRUPT_MASK_REGISTER|=SPINDLE_TIMER_INTERRUPT_MASK_INIT; //Enable the timer2 overflow
+  TCNT2=0;                                                                  // reset the counter
+  overflow_offset = 0;                                                      // set the offset to zero
+  bit_false(TIFR2,(1<<TOV2));                                               // clear any pending interrupts
   timekeeper_reset();
 }
 //Reset the timekeeper so counting starts at zero
 void timekeeper_reset()
 {
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-    TCNT2=0;					// reset the counter
-    overflow_offset = 0;		// set the offset to zero
-	bit_false(TIFR2,(1<<TOV2));	// clear any pending interrupts
-  }
+  timer_tic_count_base=get_timer_ticks();
+}
+// Get the tics since the last reset
+uint32_t get_timer_ticks_passed()
+{
+	return(get_timer_ticks()-timer_tic_count_base);
 }
 //Read the timer and check and correct is a overflow occured during reading
 uint32_t get_timer_ticks() {

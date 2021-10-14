@@ -421,7 +421,8 @@ ISR(TIMER1_COMPA_vect)
     st.step_outbits |= (1<<Z_STEP_BIT);
     st.counter_z -= st.exec_block->step_event_count;
     if (st.exec_block->direction_bits & (1<<Z_DIRECTION_BIT)) { sys_position[Z_AXIS]--; }
-    else { sys_position[Z_AXIS]++; }
+    else {sys_position[Z_AXIS]++;}
+    threading_step_pulse_count++;   // Keep track of the Z-axis position for threading
   }
 
   // During a homing cycle, lock out and prevent desired axes from moving.

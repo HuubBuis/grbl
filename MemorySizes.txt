@@ -23,4 +23,15 @@ Global variables use 1592 bytes (77%) of dynamic memory, leaving 456 bytes for l
 
 AFter enabling probe, implementing Lichuan servo STEP_ENABLE_DELAY and updated threading synchronisation:
 Release 20211002 board version 1.6.23, IDE 1.8.15
-Sketch uses 32148 bytes (99%) of program storage space. Maximum is 32256 bytes.Global variables use 1596 bytes (77%) of dynamic memory, leaving 452 bytes for local variables. Maximum is 2048 bytes. 
+Sketch uses 32148 bytes (99%) of program storage space. Maximum is 32256 bytes.Global variables use 1596 bytes (77%) of dynamic memory, leaving 452 bytes for local variables. Maximum is 2048 bytes.
+AFter fixing spindle rpm fluctuations when a threading pass starts:
+Release 20211012 board version 1.6.23, IDE 1.8.15
+Sketch uses 32244 bytes (99%) of program storage space. Maximum is 32256 bytes.
+Global variables use 1600 bytes (78%) of dynamic memory, leaving 448 bytes for local variables. Maximum is 2048 bytes.
+Release 20211012 board version 1.8.3, IDE 1.8.16
+Sketch uses 32112 bytes (99%) of program storage space. Maximum is 32256 bytes.
+Global variables use 1600 bytes (78%) of dynamic memory, leaving 448 bytes for local variables. Maximum is 2048 bytes.
+Release 20211014 board version 1.8.3, IDE 1.8.16
+Sketch uses 32080 bytes (99%) of program storage space. Maximum is 32256 bytes.
+Global variables use 1600 bytes (78%) of dynamic memory, leaving 448 bytes for local variables. Maximum is 2048 bytes.
+ 
