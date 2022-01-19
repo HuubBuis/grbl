@@ -23,7 +23,7 @@
 
 extern volatile uint8_t threading_exec_flags;               // Real time executor bitflag variable for spindle synchronization.
 extern volatile uint32_t threading_step_pulse_count;        // Step pulse counter
-extern volatile uint8_t threading_sync_pulse_count;         // Synchronization pulse counter
+extern volatile uint32_t threading_sync_pulse_count;        // Synchronization pulse counter
 extern volatile uint8_t threading_index_pulse_count;        // index pulse counter
 extern volatile uint32_t threading_sync_Last_timer_tics;    // Time at last sync pulse
 extern volatile uint32_t threading_sync_timer_tics_passed;  // Time passed sync pulse
